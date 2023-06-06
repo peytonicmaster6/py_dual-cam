@@ -46,14 +46,14 @@ def main():
 
            with MappedArray(request, "main") as m:
               cv2.putText(m.array, str(frame_count), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_AA)
-              #test = cv2.threshold(m.array, 200, 255, cv2.THRESH_BINARY)
+              test = cv2.threshold(m.array, 200, 255, cv2.THRESH_BINARY)
            
            egl.make_egl_buffer(request, 1)
            egl.make_egl_buffer(request2, 2)
            request.release()
            request2.release()
 
-           egl.display_frame()
+           egl.display_frame(test)
 
            frame_count += 1
 

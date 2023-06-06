@@ -263,7 +263,7 @@ class EGL:
 
         eglDestroyImageKHR(self.display, image)
 
-    def display_frame(self):
+    def display_frame(self, test):
         glClearColor(0, 0, 0, 0)
         glClear(GL_COLOR_BUFFER_BIT)
 
@@ -276,4 +276,17 @@ class EGL:
         glViewport(960,0,960,1080)
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
 
+        glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        (height, width, channels) = test.shape
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, test)
+
+        glUseProgram(self.program_overlay)
+        glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
+        
         eglSwapBuffers(self.display, self.surface)
+
