@@ -31,7 +31,6 @@ def getglEGLImageTargetTexture2DOES():
     prototype = CFUNCTYPE(None, _cs.GLenum, _cs.GLeglImageOES)
     return prototype(funcptr)
 
-
 glEGLImageTargetTexture2DOES = getglEGLImageTargetTexture2DOES()
 
 class EGL:
@@ -74,7 +73,7 @@ class EGL:
             void main()
             {{
                 gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-                texcoord.x = {'1.0 -'}aPosition.x;
+                texcoord.x = {''}aPosition.x;
                 texcoord.y = {'1.0 - '}aPosition.y;
             }}
         """
@@ -110,6 +109,7 @@ class EGL:
                 gl_FragColor = texture2D(overlay, texcoord);
             }
         """
+
         self.program_image = shaders.compileProgram(
             shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),
             shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER)
@@ -139,6 +139,7 @@ class EGL:
 
         self.buffer_texture = glGenTextures(1)
         self.buffer_texture2 = glGenTextures(1)
+
 
 
     def create_window(self):

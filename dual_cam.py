@@ -1,7 +1,7 @@
 import time
 import os
 
-from picamera2 import Picamera2
+from picamera2 import Picamera2, MappedArray
 import cv2
 from libcamera import controls
 import preview
@@ -35,11 +35,18 @@ def main():
     
     picam2a.set_controls({'AfMode': controls.AfModeEnum.Continuous})
     picam2b.set_controls({'AfMode': controls.AfModeEnum.Continuous})
+
+    frame_count = 0
         
     while True:
+
         if len(picam2a.completed_requests) > 0 and len(picam2b.completed_requests) > 0:
            request = picam2a.completed_requests.pop(0)
            request2 = picam2b.completed_requests.pop(0)
+
+           with MappedArray(request, "main") as m:
+              cv2.putText(m.array, str(frame_count), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_AA)
+              #test = cv2.threshold(m.array, 200, 255, cv2.THRESH_BINARY)
            
            egl.make_egl_buffer(request, 1)
            egl.make_egl_buffer(request2, 2)
@@ -47,6 +54,8 @@ def main():
            request2.release()
 
            egl.display_frame()
+
+           frame_count += 1
 
 
     picam2a.stop()
