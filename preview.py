@@ -1,13 +1,4 @@
-import time
 import os
-
-from picamera2 import Picamera2
-import cv2
-
-from ctypes import (CFUNCTYPE, POINTER, c_bool, c_char_p, c_int, c_void_p,
-                    cdll, pointer, util, byref, c_ulong)
-from Xlib import X, display
-from libcamera import controls
 
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 from OpenGL.EGL.EXT.image_dma_buf_import import *
@@ -21,6 +12,10 @@ from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 from OpenGL.raw.GLES2 import _types as _cs
+
+from ctypes import (CFUNCTYPE, POINTER, c_bool, c_char_p, c_int, c_void_p,
+                    cdll, pointer, util, byref, c_ulong)
+from Xlib import X, display
 
 def str_to_fourcc(str):
         assert (len(str) == 4)
@@ -235,14 +230,15 @@ class EGL:
             EGL_DMA_BUF_PLANE2_PITCH_EXT, stride2,
             EGL_NONE,
         ]
+
         # attribs = [
-        #     EGL_WIDTH, w,
-        #     EGL_HEIGHT, h,
-        #     EGL_LINUX_DRM_FOURCC_EXT, fmt,
-        #     EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-        #     EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-        #     EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
-        #     EGL_NONE,
+        #      EGL_WIDTH, w,
+        #      EGL_HEIGHT, h,
+        #      EGL_LINUX_DRM_FOURCC_EXT, fmt,
+        #      EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
+        #      EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
+        #      EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
+        #      EGL_NONE,
         # ]
 
         #print(self.display)
@@ -280,50 +276,3 @@ class EGL:
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
 
         eglSwapBuffers(self.display, self.surface)
-
-def main():
-
-    egl = EGL()
-
-    if len(Picamera2.global_camera_info()) <= 1:
-        print("SKIPPED (one camera)")
-        quit()
-
-    picam2a = Picamera2(0)
-    picam2a.preview_configuration.main.format = "YUV420"
-    picam2a.preview_configuration.main.size = (1920, 1080)
-    picam2a.preview_configuration.controls.FrameRate = 30
-    picam2a.configure('preview')
-    
-
-    picam2b = Picamera2(1)
-    picam2b.preview_configuration.main.format = "YUV420"
-    picam2b.preview_configuration.main.size = (1920, 1080)
-    picam2b.preview_configuration.controls.FrameRate = 30
-    picam2b.configure('preview')
-
-
-    picam2a.start()
-    picam2b.start()
-    
-    picam2a.set_controls({'AfMode': controls.AfModeEnum.Continuous})
-    picam2b.set_controls({'AfMode': controls.AfModeEnum.Continuous})
-        
-    while True:
-        if len(picam2a.completed_requests) > 0 and len(picam2b.completed_requests) > 0:
-           request = picam2a.completed_requests.pop(0)
-           request2 = picam2b.completed_requests.pop(0)
-           
-           egl.make_egl_buffer(request, 1)
-           egl.make_egl_buffer(request2, 2)
-           request.release()
-           request2.release()
-
-           egl.display_frame()
-
-
-    picam2a.stop()
-    picam2b.stop()
-
-if __name__ == "__main__":
-    main()
