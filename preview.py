@@ -48,6 +48,8 @@ class EGL:
 
         eglMakeCurrent(self.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
+        eglMakeCurrent(self.display, self.surface, self.surface, self.context)
+
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         self.overlay_texture = glGenTextures(1)
@@ -264,18 +266,24 @@ class EGL:
         eglDestroyImageKHR(self.display, image)
 
     def display_frame(self, test):
+
+        #eglMakeCurrent(self.display, self.surface, self.surface, self.context)
+
         glClearColor(0, 0, 0, 0)
         glClear(GL_COLOR_BUFFER_BIT)
-
+        
+        # camera 1
         glUseProgram(self.program_image)
         glBindTexture(GL_TEXTURE_EXTERNAL_OES, self.buffer_texture)
         glViewport(0,0,960,1080)
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
 
+        # camera 2
         glBindTexture(GL_TEXTURE_EXTERNAL_OES, self.buffer_texture2)
         glViewport(960,0,960,1080)
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
 
+        # overlay
         glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
