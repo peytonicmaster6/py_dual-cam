@@ -60,16 +60,16 @@ class DrmPreview(NullPreview):
         self.fd = self.fb.fd(0)
         super().__init__(width=width, height=height)
 
-    def render_request(self, completed_request):
-        """Draw the camera image using DRM."""
-        with self.lock:
-            self.render_drm(completed_request)
-            if self.current and self.own_current:
-                self.current.release()
-            self.current = completed_request
-            self.own_current = (completed_request.config['buffer_count'] > 1)
-            if self.own_current:
-                self.current.acquire()
+    # def render_request(self, completed_request):
+    #     """Draw the camera image using DRM."""
+    #     with self.lock:
+    #         self.render_drm(completed_request)
+    #         if self.current and self.own_current:
+    #             self.current.release()
+    #         self.current = completed_request
+    #         self.own_current = (completed_request.config['buffer_count'] > 1)
+    #         if self.own_current:
+    #             self.current.acquire()
 
     def handle_request(self, picam2):
         picam2.process_requests(self)
@@ -90,6 +90,9 @@ class DrmPreview(NullPreview):
         self.lock = threading.Lock()
         self.fb = []
         self.fb2 = []
+
+        self.fb_width = 0
+        self.fb_height = 0
 
     def set_overlay(self, overlay):
         if self.picam2 is None:
@@ -116,6 +119,9 @@ class DrmPreview(NullPreview):
         cfg = stream.configuration
         pixel_format = str(cfg.pixel_format)
         width, height = (cfg.size.width, cfg.size.height)
+
+        self.fb_width = width
+        self.fb_height = height
 
         x, y, w, h = self.window
         # Letter/pillar-box to preserve the image's aspect ratio.
@@ -219,47 +225,22 @@ class DrmPreview(NullPreview):
                 self.fb2 = fb
 
     def render_drm(self):
-        # fbs = self.drmfbs.values()
-
-        # print(fbs)
-
-        # ids = []
-
-        # for fb in fbs:
-        #     id = fb.id
-        #     ids.append(id)
-        #print(self.fb)
-        #print(self.drmfbs)
-
         drmfb = self.drmfbs[self.fb]
         drmfb2 = self.drmfbs[self.fb2]
 
-        #print(drmfb)
-
-        #drmfb = id
-        # drmfb2 = self.drmfbs[fb2]
-        #self.crtc.set_plane(self.plane, drmfb, x, y, 960, 1080, 0, 0, width, height)
-        #self.crtc.set_plane(self.overlay_plane, drmfb, 960, y, 960, 1080, 0, 0, width, height)
         # self.crtc.set_plane(self.plane2, drmfb2, 960, y, 960, 1080, 0, 0, width, height)
         #An "atomic commit" would probably be better, but I can't get this to work...
         ctx = pykms.AtomicReq(self.card)
-        # print(self.plane)
-        # print(self.plane.get_prop("FB_ID"))
-        # print(self.plane.get_prop("CRTC_ID"))
-        # print(self.plane.get_prop("SRC_W"))
-        # print(self.plane.get_prop("SRC_H"))
-        # print(self.plane.get_prop("CRTC_X"))
-        # print(self.plane.get_prop("CRTC_Y"))
-        # print(self.plane.get_prop("CRTC_W"))
-        # print(self.plane.get_prop("CRTC_H"))
+
+        crtc_w = int(self.window[2]/2)
+        crtc_h = int(self.window[3])
+
         ctx.add(self.plane, {"FB_ID": drmfb.id, "CRTC_ID": self.crtc.id,
-                                "SRC_W": 1920 << 16, "SRC_H": 1080 << 16,
-                                "CRTC_X": 0, "CRTC_Y": 0, "CRTC_W": 960, "CRTC_H": 1080})
-        #print('here')
+                             "SRC_W": self.fb_width << 16, "SRC_H": self.fb_height << 16,
+                             "CRTC_X": 0, "CRTC_Y": 0, "CRTC_W": crtc_w, "CRTC_H": crtc_h})
         ctx.add(self.plane2, {"FB_ID": drmfb2.id, "CRTC_ID": self.crtc.id,
-                                "SRC_W": 1920 << 16, "SRC_H": 1080 << 16,
-                                "CRTC_X": 960, "CRTC_Y": 0, "CRTC_W": 960, "CRTC_H": 1080})
-        ctx.commit_sync()
+                              "SRC_W": self.fb_width << 16, "SRC_H": self.fb_height << 16,
+                              "CRTC_X": crtc_w, "CRTC_Y": 0, "CRTC_W": crtc_w, "CRTC_H": crtc_h})
 
         # overlay_new_fb = self.overlay_new_fb
         # if overlay_new_fb != self.overlay_fb:
@@ -270,6 +251,8 @@ class DrmPreview(NullPreview):
         #     self.crtc.set_plane(self.overlay_plane, self.overlay_fb, x, y, w, h, 0, 0, width, height)
         # overlay_old_fb = None  # noqa  The new one has been sent so it's safe to let this go now
         # old_drmfbs = None  # noqa  Can chuck these away now too
+
+        ctx.commit_sync()
 
     def stop(self):
         super().stop()
